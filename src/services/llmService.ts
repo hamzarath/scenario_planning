@@ -1,43 +1,38 @@
 import { SYSTEM_PROMPT } from '../gameLogic';
 
-const MISTRAL_API_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
+const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 export const sendMessage = async (userMessage: string): Promise<string> => {
   try {
-    const apiKey = process.env.REACT_APP_MISTRAL_API_KEY;
-    console.log('API Key available:', !!apiKey); // Will log true/false without exposing the key
-    console.log('API Key length:', apiKey?.length);
-    console.log('First 4 chars of API key:', apiKey?.substring(0, 4));
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    console.log('API Key available:', !!apiKey);
     
     if (!apiKey) {
       console.error('Available env vars:', Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')));
-      throw new Error('Mistral API key not found. Please add it to your .env file.');
+      throw new Error('Gemini API key not found. Please add it to your .env file.');
     }
 
     const requestBody = {
-      model: "mistral-medium",  // or "mistral-small", "mistral-large" depending on your needs
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMessage }
-      ],
-      temperature: 0.7,
-      max_tokens: 8192
+      contents: [{
+        parts: [
+          { text: SYSTEM_PROMPT },
+          { text: userMessage }
+        ]
+      }]
     };
 
     const headers = new Headers({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${apiKey.trim()}`
+      'Content-Type': 'application/json'
     });
 
     console.log('Full request config:', {
-      url: MISTRAL_API_ENDPOINT,
+      url: GEMINI_API_ENDPOINT,
       method: 'POST',
       headers: Object.fromEntries(headers.entries()),
       bodyLength: JSON.stringify(requestBody).length
     });
 
-    const response = await fetch(MISTRAL_API_ENDPOINT, {
+    const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${apiKey.trim()}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody)
@@ -45,21 +40,21 @@ export const sendMessage = async (userMessage: string): Promise<string> => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Mistral API Error Response:', {
+      console.error('Gemini API Error Response:', {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries()),
         body: errorText
       });
-      throw new Error(`Mistral API Error: ${response.status} - ${errorText}`);
+      throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    return data.candidates[0].content.parts[0].text;
   } catch (error) {
-    console.error('Error calling Mistral API:', error);
+    console.error('Error calling Gemini API:', error);
     if (error instanceof Error) {
-      throw new Error(`Failed to communicate with Mistral AI: ${error.message}`);
+      throw new Error(`Failed to communicate with Gemini AI: ${error.message}`);
     }
     throw error;
   }

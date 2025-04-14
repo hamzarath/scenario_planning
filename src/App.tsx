@@ -288,21 +288,43 @@ function App() {
   const handleScenarioSelect = async (scenario: Scenario) => {
     setIsLoading(true);
     try {
-      // Create a more detailed history of previous rounds
+      // Create a more detailed history of previous rounds with explicit impact analysis
       const history = gameState.selectedScenarios.map((s, i) => {
         const roundNumber = i + 1;
         const roundTitle = Object.keys(ROUND_PROMPTS)[i];
+        const previousScenario = i === 0 ? null : gameState.selectedScenarios[i - 1];
+        
         return `Round ${roundNumber} (${roundTitle}):
-- Scenario: ${i === gameState.currentRound - 1 ? (currentScenario?.description || 'Current scenario') : 'Previous scenario'}
+- Initial Scenario: ${i === 0 ? 'N/A' : previousScenario?.description || 'Previous scenario'}
 - Selected Option: ${s.text}
 - Decision Rationale: ${s.description}
-- Impact: [To be analyzed in subsequent rounds]`;
+- Immediate Impact: ${i === gameState.currentRound - 1 ? 'Current decision being made' : 'Impact analyzed in subsequent rounds'}
+- Market Response: ${i === gameState.currentRound - 1 ? 'To be determined' : 'Reflected in current market conditions'}
+- Strategic Position: ${i === gameState.currentRound - 1 ? 'Current position being evaluated' : 'Current market position'}`;
       }).join('\n\n');
 
       if (gameState.currentRound < 5) {
+        // Get the immediate previous round's details
+        const previousRound = gameState.currentRound === 1 ? null : gameState.selectedScenarios[gameState.currentRound - 2];
+        const previousRoundTitle = Object.keys(ROUND_PROMPTS)[gameState.currentRound - 1];
+        
+        let previousRoundDetails = '';
+        if (previousRound) {
+          previousRoundDetails = `\n\nIMMEDIATE PREVIOUS ROUND (MOST CRITICAL FOR CURRENT DECISION):
+Round ${gameState.currentRound} (${previousRoundTitle}):
+- Selected Option: ${previousRound.text}
+- Decision Rationale: ${previousRound.description}
+- Current Market Position: Based on this decision
+- Immediate Challenges: Resulting from this choice
+- New Opportunities: Created by this decision`;
+        }
+
         const prompt = ROUND_PROMPTS[gameState.currentRound + 1]
           .replace('[USER_SERVICE_DESCRIPTION]', serviceDescription) + 
-          `\n\nPrevious Rounds:\n${history}`;
+          `\n\nPrevious Rounds History (CRITICAL: Use this to inform the current round's scenario and options):
+${history}${previousRoundDetails}
+
+IMPORTANT: The current round's scenario and options MUST directly build upon the IMMEDIATE PREVIOUS ROUND'S decision and its consequences. Each option should represent a logical next step from the current market position, taking into account the specific challenges and opportunities created by the previous round's choice.`;
         
         console.log(`\n=== ROUND ${gameState.currentRound + 1} PROMPT ===\n`, prompt);
         const response = await sendMessage(prompt);
@@ -370,6 +392,7 @@ FINAL OUTCOME:
       }
     } catch (error) {
       console.error('Error handling scenario selection:', error);
+      alert('An error occurred while processing your selection. Please try again.');
     } finally {
       setIsLoading(false);
     }

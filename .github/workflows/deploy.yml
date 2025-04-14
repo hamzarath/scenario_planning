@@ -26,7 +26,7 @@ jobs:
 
       - name: Build
         env:
-          REACT_APP_MISTRAL_API_KEY: ${{ secrets.REACT_APP_MISTRAL_API_KEY }}
+          REACT_APP_GEMINI_API_KEY: ${{ secrets.REACT_APP_GEMINI_API_KEY }}
           CI: false
         run: npm run build
 
