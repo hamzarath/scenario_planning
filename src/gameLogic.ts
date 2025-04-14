@@ -148,12 +148,12 @@ export const parseLLMResponse = (response: string): { scenario: string; options:
 
   // Extract options
   const optionsText = response.split('OPTIONS:')[1] || '';
-  const optionRegex = /OPTION(\d+):\s*([^\n]*)\n([\s\S]*?)(?=OPTION\d+:|$)/g;
+  const optionRegex = /OPTION(\d+):\s*([^\n]+)\n([\s\S]*?)(?=OPTION\d+:|$)/g;
   let match;
 
   while ((match = optionRegex.exec(optionsText)) !== null) {
     const optionNumber = parseInt(match[1]);
-    const optionTitle = match[2].trim();
+    const optionTitle = match[2].trim().replace(/\*\*/g, ''); // Remove any remaining asterisks
     const optionDescription = match[3].trim();
 
     options.push({
